@@ -3,19 +3,43 @@ include:
   - /.gitlab-ci/variables.yml
   - /.gitlab-ci/extends.yml
 
-  - /.gitlab-ci/stages/prepare.yml
-  - /.gitlab-ci/stages/quality.yml
-  - /.gitlab-ci/stages/register.yml
-  - /.gitlab-ci/stages/scan.yml
-  - /.gitlab-ci/stages/data.yml
-  - /.gitlab-ci/stages/deploy.yml
-  - /.gitlab-ci/stages/notify.yml
+  # - /.gitlab-ci/stages/prepare.yml
+  # - /.gitlab-ci/stages/quality.yml
+  # - /.gitlab-ci/stages/register.yml
+  # - /.gitlab-ci/stages/scan.yml
+  # - /.gitlab-ci/stages/data.yml
+  # - /.gitlab-ci/stages/deploy.yml
+  # - /.gitlab-ci/stages/notify.yml
 
 stages:
-  - "Prepare"
-  - "Code Quality"
-  - "Registration"
-  - "Vuln scanner"
-  - "Data"
-  - "Deploy"
-  - "Notify Finished Deployment"
+  # - "Prepare"
+  # - "Code Quality"
+  # - "Registration"
+  # - "Vuln scanner"
+  # - "Data"
+  # - "Deploy"
+  # - "Notify Finished Deployment"
+  - Data
+
+#
+.build_and_push_stage: &build_and_push_stage
+  extends: .base_docker_image_stage
+  stage: "Data"
+  dependencies: []
+  before_script:
+    - echo "$CI_JOB_TOKEN" | docker login $CI_REGISTRY -u gitlab-ci-token --password-stdin
+  script:
+    - docker build $DOCKER_BUILD_ARGS -t $IMAGE_NAME:$CI_COMMIT_SHA $CONTEXT
+    - docker push $IMAGE_NAME
+
+Ingest data:
+  <<: *build_and_push_stage
+  services:
+    - ${CI_REGISTRY_IMAGE}/nlp:master
+  variables:
+    NLP_URL: nlp:5000
+    CONTEXT: packages/code-du-travail-data
+    DOCKER_BUILD_ARGS: >-
+      --build-arg REGISTRY=$CI_REGISTRY_IMAGE
+      --build-arg TAG_BASE_IMAGE=$CI_COMMIT_SHA
+    IMAGE_NAME: $CI_REGISTRY_IMAGE/data
