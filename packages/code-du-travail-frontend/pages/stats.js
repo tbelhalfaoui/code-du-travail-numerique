@@ -14,6 +14,7 @@ import {
 } from "@socialgouv/react-ui";
 
 import { Layout } from "../src/layout/Layout";
+import { FocusRoot } from "../src/a11y";
 
 const {
   publicRuntimeConfig: { API_URL }
@@ -34,7 +35,9 @@ const Stats = ({ data }) => {
       </Head>
       <Section>
         <Container>
-          <PageTitle>Statistiques du Code du travail numérique</PageTitle>
+          <FocusRoot>
+            <PageTitle>Statistiques du Code du travail numérique</PageTitle>
+          </FocusRoot>
           <Wrapper variant="main">
             <Grid columns={3}>
               <Tile variant="dark">
