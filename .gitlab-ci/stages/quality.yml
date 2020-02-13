@@ -42,12 +42,6 @@ Lint @cdtn/frontend:
   script:
     - yarn workspace @cdt/frontend lint
 
-Lint @cdtn/data:
-  <<: *quality_stage
-  <<: *master_based_stage
-  script:
-    - yarn workspace @cdt/data lint
-
 Lint Dockerfiles:
   <<: *quality_stage
   image: hadolint/hadolint:latest-debian
@@ -99,14 +93,6 @@ Test @cdtn/api:
       do echo "Waiting for Elasticsearch to go Green ($retry)" ; sleep 1 ; done ;
     #
     - yarn workspace @cdt/api test --coverage
-
-Test @cdtn/data:
-  <<: *quality_stage
-  <<: *master_based_stage
-  script:
-    - yarn workspace @cdt/data test
-    - yarn workspace @cdt/data check-slugs
-    - yarn workspace @cdt/data...datafiller test
 
 Test @cdtn/frontend SDR data:
   <<: *quality_stage
