@@ -25,6 +25,7 @@ include:
 stages:
   - "Prepare"
   - "Code Quality"
+  - "Build"
   - "Manual Deploy"
   - "Registration"
   - "Post Registration"
