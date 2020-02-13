@@ -1,0 +1,27 @@
+
+.base_yarn_workspace_install:
+  extends: .prepare_stage
+  image: node:12-alpine
+  interruptible: true
+  variables:
+    F1_PACKAGES_FOLDER: node_modules
+    F1_CACHE_FOLDER: yarn
+    F1_CHECK_FILES: yarn.lock packages/${CONTEXT}/package.json
+  script:
+    - source .gitlab-ci/f1_scripts.sh
+    #
+    - f1_install_before
+    #
+    # NOTE(dougladuteil): remove all monorepo dependencies
+    # As we only install one package, we do not need the cross packages dependencies
+    # like lerna or husky...
+    - "{
+        rm package.json;
+        jq 'del(.dependencies) | del(.devDependencies)' > package.json;
+      } < package.json"
+    - rm -rf node_modules packages/${CONTEXT}/node_modules
+    #
+    - yarn config set cache-folder $CI_PROJECT_DIR/yarn
+    - yarn --frozen-lockfile
+    #
+    - f1_install_after
