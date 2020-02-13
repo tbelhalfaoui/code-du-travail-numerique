@@ -1,0 +1,113 @@
+#
+
+Install data:
+  extends: .base_yarn_workspace_install
+  variables:
+    CONTEXT: code-du-travail-data
+  before_script:
+    - find packages -maxdepth 1 -type d
+      -not -name ${CONTEXT}
+      -not -name sources | tail -n +2 | xargs rm -rf
+  artifacts:
+    expire_in: 30 mins
+    paths:
+      - node_modules
+      - packages/${CONTEXT}/node_modules
+
+#
+
+Build @cdt/data:
+  extends: .quality_stage
+  dependencies:
+    - Install data
+  needs:
+    - Install data
+  image: node:12-alpine
+  script:
+    - yarn workspace @cdt/data build
+  artifacts:
+    expire_in: 30 mins
+    paths:
+      - packages/code-du-travail-data/dist
+
+#
+
+Lint @cdtn/data:
+  extends: .quality_stage
+  dependencies:
+    - Install data
+  needs:
+    - Install data
+  image: node:12-alpine
+  script:
+    - yarn workspace @cdt/data lint
+
+Test @cdtn/data:
+  extends: .quality_stage
+  dependencies:
+    - Install data
+  needs:
+    - Install data
+  image: node:12-alpine
+  script:
+    - yarn workspace @cdt/data test
+    - yarn workspace @cdt/data check-slugs
+    - yarn workspace @cdt/data...datafiller test
+
+#
+
+Register data image:
+  extends:
+    - .base_register_stage
+    - .register_stage
+  stage: "Registration"
+  dependencies:
+    - Build @cdt/data
+    - Build @cdt/nlp
+  needs:
+    - Build @cdt/data
+    - Build @cdt/nlp
+    - Install data
+  before_script:
+    - >-
+      mkdir -p ${CONTEXT}/node_modules/@cdt/nlp/data &&
+      mv ./packages/code-du-travail-nlp/data/dump.tf.json \
+        ${CONTEXT}/node_modules/@cdt/nlp/data/dump.tf.json
+  variables:
+    CONTEXT: packages/code-du-travail-data
+    IMAGE_NAME: $CI_REGISTRY_IMAGE/data
+
+
+.deploy_data_stage: &deploy_data_stage
+  extends:
+    - .deploy_stage
+  image: registry.gitlab.factory.social.gouv.fr/socialgouv/docker/kubectl:0.20.0
+  variables:
+    CONTEXT: data
+    ES_PORT: ${ELASTICSEARCH_PORT}
+    IMAGE_NAME: ${CI_REGISTRY_IMAGE}/data
+  script:
+    - source ./.gitlab-ci/env.sh
+    #
+    - >-
+      if [[ "${BRANCH_NAME}" != "master" ]] && [[ "${ES_INDEX_PREFIX}" == *"master"* ]]; then
+        exit "${CI_JOB_SKIP_EXIT_CODE:-0}"
+      fi
+    #
+    - kubectl config set-context --current --namespace=${K8S_NAMESPACE}
+    #
+    - kubectl delete job ${CONTEXT} || true
+    - cat ./.k8s/data.job.yml | envsubst | kubectl apply -f -
+
+#
+
+Deploy @cdtn/data (dev):
+  extends:
+    - .deploy_data_stage
+    - .dev_stage
+  dependencies:
+    - Register data image
+
+# Deploy @cdtn/data (prod):
+#   <<: *deploy_data
+#   <<: *prod_stage
