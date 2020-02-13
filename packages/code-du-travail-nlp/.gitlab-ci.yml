@@ -1,0 +1,120 @@
+#
+
+Install nlp:
+  extends: .prepare_stage
+  image: python:3.7-slim-buster
+  interruptible: true
+  variables:
+    CONTEXT: code-du-travail-nlp
+    #
+    PIP_CACHE_DIR: "${CI_PROJECT_DIR}/pip"
+    PYTHONUSERBASE: "${CI_PROJECT_DIR}/python_user_packages"
+    #
+    F1_PACKAGES_FOLDER: python_user_packages
+    F1_CACHE_FOLDER: pip
+    F1_CHECK_FILES: packages/${CONTEXT}/requirements.txt
+  script:
+    - source .gitlab-ci/f1_scripts.sh
+    #
+    - f1_install_before
+    #
+    - cd packages/${CONTEXT}
+    - pip install --upgrade pip
+    - pip install --user -r requirements.txt
+    - cd ${CI_PROJECT_DIR}
+    #
+    - f1_install_after
+
+  artifacts:
+    expire_in: 30 mins
+    paths:
+      - python_user_packages
+
+#
+
+Build @cdt/nlp:
+  extends: .quality_stage
+  stage: "Build"
+  dependencies:
+    - Build @cdt/data
+    - Install nlp
+  needs:
+    - Build @cdt/data
+    - Install data
+    - Install nlp
+  variables:
+    CONTEXT: code-du-travail-nlp
+    #
+    PYTHONPATH: "${CI_PROJECT_DIR}/packages/${CONTEXT}"
+    PYTHONUSERBASE: "${CI_PROJECT_DIR}/python_user_packages"
+    #
+    F1_PACKAGES_NAME: dump
+    F1_PACKAGES_FOLDER: packages/${CONTEXT}/data/dump.tf.json
+    F1_CHECK_FILES: packages/${CONTEXT}/data/dump.json
+  image: python:3.7-slim-buster
+  script:
+    #
+    - cp ./packages/code-du-travail-data/dist/dump.data.json
+        ./packages/${CONTEXT}/data/dump.json
+    #
+    - source .gitlab-ci/f1_scripts.sh
+    #
+    - f1_install_before
+    #
+    - cd packages/${CONTEXT}
+    - export PATH=$PATH:$PYTHONUSERBASE/bin
+    - python ./scripts/dump.py
+    - cd ${CI_PROJECT_DIR}
+    #
+    - f1_install_after
+  artifacts:
+    expire_in: 30 mins
+    paths:
+      - packages/${CONTEXT}/data/dump.tf.json
+
+#
+
+Register nlp image:
+  extends:
+    - .base_register_stage
+    - .register_stage
+  variables:
+    CONTEXT: packages/code-du-travail-nlp
+    DOCKER_BUILD_ARGS: >-
+      --build-arg SUGGEST_DATA_URL=$SUGGEST_DATA_URL
+    IMAGE_NAME: $CI_REGISTRY_IMAGE/nlp
+
+#
+
+.deploy_nlp_stage:
+  extends:
+    - .base_deploy_nodejs_chart_stage
+    - .deploy_stage
+    - .dev_stage
+  variables:
+    IMAGE_TAG: master
+    PORT: ${NLP_PORT}
+    CONTEXT: nlp
+    VALUES_FILE: ./.k8s/nlp.values.yml
+  before_script:
+    - source ./.gitlab-ci/env.sh
+    - HOST=${NLP_HOST}
+    #
+    - >-
+      if [[ "${BRANCH_NAME}" != "master" ]] && [[ "${HOST}" == *"master"* ]]; then
+        exit "${CI_JOB_SKIP_EXIT_CODE:-0}"
+      fi
+
+#
+
+Deploy @cdtn/nlp (dev):
+  extends:
+    - .deploy_nlp_stage
+    - .dev_stage
+  dependencies:
+    - Register nlp image
+
+# Deploy @cdtn/nlp (prod):
+#   extends:
+#     - .deploy_nlp_stage
+#     - .dev_stage
