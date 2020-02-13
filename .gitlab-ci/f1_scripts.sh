@@ -22,11 +22,12 @@ wget -qO ./manual_caching.sh https://raw.githubusercontent.com/SocialGouv/gitlab
 source ./manual_caching.sh
 
 function f1_install_before () {
+  local package_name=${F1_PACKAGES_NAME:=${F1_PACKAGES_FOLDER}}
+
   echo "🏎️ If ${F1_CHECK_FILES} changes"
   echo "🏎️ Reinstall the ${F1_PACKAGES_FOLDER} as ${package_name}"
   echo "🏎️ Using ${F1_CACHE_FOLDER}"
 
-  local package_name=${F1_PACKAGES_NAME:=${F1_PACKAGES_FOLDER}}
 
   if [[ -z ${NO_CACHE} ]]; then
     echo ""
