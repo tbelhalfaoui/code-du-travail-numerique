@@ -2,9 +2,9 @@
 
 @home
 Fonctionnalité: Page d'acceuil
-  Pour pouvoir trouver une information sur le droit du travai
+  Pour pouvoir trouver une information sur le droit du travail
   En tant que visiteur
-  Je veux être pouvoir consulter la page d'acceuil
+  Je veux pouvoir consulter la page d'acceuil
 
 Scénario:
   Soit un navigateur web sur le site
