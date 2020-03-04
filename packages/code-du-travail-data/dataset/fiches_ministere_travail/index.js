@@ -7,6 +7,7 @@ const slugify = require("@cdt/data/slugify");
 const urls = require("./ministere-travail-liste-fiches.json");
 const { splitArticle } = require("./articleSplitter");
 const { extractReferences } = require("./referenceExtractor");
+const { resolveReferences } = require("./referenceResolver");
 
 const $$ = (node, selector) => Array.from(node.querySelectorAll(selector));
 const $ = (node, selector) => node.querySelector(selector);
@@ -125,7 +126,8 @@ function parseDom(dom, url) {
           section.html += nextEl.outerHTML;
           nextEl = nextEl.nextElementSibling;
         }
-        section.references = extractReferences(section.text);
+        const references = extractReferences(section.text);
+        section.references = resolveReferences(references);
         sections.push(section);
       }
     });
